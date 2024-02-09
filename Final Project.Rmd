@@ -1,0 +1,254 @@
+---
+title: "FDA Final Project"
+author: "Xintong Chen"
+date: "2020/4/12"
+output: html_document
+---
+
+
+# Introduction to Crimes in Chicago
+
+This dataset reflects reported incidents of crime (with the exception of murders where data exists for each victim) that occurred in the City of Chicago from 2001 to 2017. Data is extracted from the Chicago Police Department's CLEAR (Citizen Law Enforcement Analysis and Reporting) system. In order to protect the privacy of crime victims, addresses are shown at the block level only and specific locations are not identified. 
+
+
+## Link to the data
+
+<https://www.kaggle.com/currie32/crimes-in-chicago#Chicago_Crimes_2012_to_2017.csv>
+
+# Reading the data
+```{r, warning=FALSE}
+Crime1 <- read.csv("/Users/chenxintong/Desktop/research & Project/archive (1)/Chicago_Crimes_2001_to_2004.csv")
+Crime2 <- read.csv("/Users/chenxintong/Desktop/research & Project/archive (1)/Chicago_Crimes_2005_to_2007.csv")
+Crime3 <- read.csv("/Users/chenxintong/Desktop/research & Project/archive (1)/Chicago_Crimes_2008_to_2011.csv")
+Crime4 <- read.csv("/Users/chenxintong/Desktop/research & Project/archive (1)/Chicago_Crimes_2012_to_2017.csv")
+```
+
+
+```{r, warning=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(wordcloud2)
+#library(hrbrthemes)
+library(ggmap)
+library(sp)
+library(mapview)
+library("sf")
+library("rnaturalearth")
+library("rnaturalearthdata")
+library("ggspatial")
+library(maps)
+library(gridExtra)
+```
+
+```{r, warning=FALSE}
+Crime_2001_2004 <- na.omit(Crime1)
+Crime_2005_2007 <- na.omit(Crime2)
+Crime_2008_2011 <- na.omit(Crime3)
+Crime_2012_2017 <- na.omit(Crime4)
+Crime_2001_2017 <- rbind(Crime_2001_2004, Crime_2005_2007, Crime_2008_2011, Crime_2012_2017)
+```
+
+# Crime Number Tendency from 2008 to 2017
+
+```{r, warning=FALSE}
+Crime_2001_2017$Year <- as.numeric(Crime_2001_2017$Year)
+Crime_tendency <- data.frame(table(Crime_2001_2017$Year))
+Crime_tendency <- Crime_tendency[-c(1,18),]
+ggplot(Crime_tendency, aes(x=Var1, y=Freq, group = 1)) + 
+  geom_line() +
+  geom_point(size=4, shape=20) +
+  labs(title = "Crime Number Tendency from 2001 to 2016", 
+       x = "Year", y = "Crime Number")+
+  theme(panel.background=element_rect(fill="#FFCC99",color ="white"))
+
+```
+
+
+# Arrest Tendency From 2001 to 2016
+
+```{r, warning=FALSE}
+Arrest_2001 <- sum(Crime_2001_2004$Arrest[which(Crime_2001_2004$Year == 2001)] == "True")
+Arrest_2002 <- sum(Crime_2001_2004$Arrest[which(Crime_2001_2004$Year == 2002)] == "True")
+Arrest_2003 <- sum(Crime_2001_2004$Arrest[which(Crime_2001_2004$Year == 2003)] == "True")
+Arrest_2004 <- sum(Crime_2001_2004$Arrest[which(Crime_2001_2004$Year == 2004)] == "True")
+Arrest_2005 <- sum(Crime_2005_2007$Arrest[which(Crime_2005_2007$Year == 2005)] == "True")
+Arrest_2006 <- sum(Crime_2005_2007$Arrest[which(Crime_2005_2007$Year == 2006)] == "True")
+Arrest_2007 <- sum(Crime_2005_2007$Arrest[which(Crime_2005_2007$Year == 2007)] == "True")
+Arrest_2008 <- sum(Crime_2008_2011$Arrest[which(Crime_2008_2011$Year == 2008)] == "True")
+Arrest_2009 <- sum(Crime_2008_2011$Arrest[which(Crime_2008_2011$Year == 2009)] == "True")
+Arrest_2010 <- sum(Crime_2008_2011$Arrest[which(Crime_2008_2011$Year == 2010)] == "True")
+Arrest_2011 <- sum(Crime_2008_2011$Arrest[which(Crime_2008_2011$Year == 2011)] == "True")
+Arrest_2012 <- sum(Crime_2012_2017$Arrest[which(Crime_2012_2017$Year == 2012)] == "True")
+Arrest_2013 <- sum(Crime_2012_2017$Arrest[which(Crime_2012_2017$Year == 2013)] == "True")
+Arrest_2014 <- sum(Crime_2012_2017$Arrest[which(Crime_2012_2017$Year == 2014)] == "True")
+Arrest_2015 <- sum(Crime_2012_2017$Arrest[which(Crime_2012_2017$Year == 2015)] == "True")
+Arrest_2016 <- sum(Crime_2012_2017$Arrest[which(Crime_2012_2017$Year == 2016)] == "True")
+Arrest <- c(Arrest_2001, Arrest_2002, Arrest_2003, Arrest_2004, Arrest_2005, Arrest_2006, Arrest_2007, Arrest_2008, Arrest_2009, Arrest_2010, Arrest_2011, Arrest_2012, Arrest_2013, Arrest_2014, Arrest_2015, Arrest_2016)
+
+
+
+#Arrest_2001_2017 <- table(Crime_2001_2017$Arrest, Crime_2001_2017$Year)[-1,]
+#Arrest_tendency <- data.frame(Arrest_2001_2017[2,]/sum(Arrest_2001_2017[2,], Arrest_2001_2017[1,])*100)
+
+#names(Arrest_tendency)[1] = "Percentage"
+#Arrest_tendency_2 <- cbind(Crime_tendency, Arrest_tendency)
+
+#ggplot(Arrest_tendency_2, aes(x=Var1, y=Percentage)) + 
+#  geom_bar(stat = "identity", col="white", fill = "#4F86C6") +
+#  labs(title = "Arrest Percentage from 2008 to 2017", 
+#       x = "Year", y = "Arrest Percentage")+
+#  theme(panel.background=element_rect(fill="#77AAAD",color ="white"))
+```
+
+```{r}
+data <- Crime_tendency
+data$Arrest <- Arrest
+names(data)<-c("Year","Crime_Number","Arrest_Number")
+data$Percentage <- data$`Arrest Number`/data$`Crime Number`
+
+```
+
+# Linear Regression
+
+```{r}
+m1 <- lm(data=data, Crime_Number ~ Arrest_Number)
+summary(m1)
+
+ggplot(data=data, aes(x=Crime_Number, y=Arrest_Number)) +
+  geom_point() +
+  geom_smooth(method="lm",formula= y ~ x)
+```
+
+# Time Series
+```{r}
+
+
+
+```
+
+
+
+```{r, warning=FALSE}
+#library
+library(latticeExtra)
+Arrest <- data.frame((table(Crime_2008_2017$Arrest, Crime_2008_2017$Year)[-1,])[2,])
+data <- data.frame(Crime_tendency,Arrest)
+names(data)[1] = "Year"
+names(data)[2] = "Crime Number"
+names(data)[3] = "Arrest Number"
+
+xyplot(data$`Crime Number` + data$`Arrest Number`~ data$Year, data, col=c("steelblue", "#69b3a2"), type = "l" , lwd=2)
+
+
+```
+
+# The relationship between beat and district
+
+```{r, warning=FALSE}
+ggplot(Crime_2008_2017, aes(x=Beat, y=District)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
+  theme_ipsum()
+```
+
+```{r}
+summary(lm(Crime_2008_2017$District~Crime_2008_2017$Beat))
+```
+
+# The Primary Type of Crime
+
+```{r, warning=FALSE}
+Primary_type <- data.frame(table(Crime_2008_2017$Primary.Type))
+Primary_type_order <- Primary_type %>% 
+  arrange(Freq) %>%
+  mutate(Var1=factor(Var1,Var1))
+
+ggplot(Primary_type_order, aes(x=Var1, y=Freq)) +
+  geom_segment( aes(x=Var1, xend=Var1, y=0, yend=Freq), color="orange") +
+  geom_point( color="tomato", size=3, alpha=0.6) +
+  theme_light() +
+  coord_flip() +
+  labs(title="The Primary Type of Crime", x="Types", y="Number")+
+  theme(
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(color = "dark red",size=9),
+    axis.text.y = element_text(color = "dark red",size=7))
+```
+
+
+# More Details in Theft
+
+```{r, warning=FALSE}
+Crime_theft <- Crime_2008_2017[which(Crime_2008_2017$Primary.Type == "THEFT"),]
+Crime_theft_Description <- data.frame(table(Crime_theft$Description))
+
+Description_order <- Crime_theft_Description %>% 
+  arrange(desc(Freq))
+
+Description_order <- Description_order[which(Description_order$Freq != 0),]
+names(Description_order)[1] = "Type"
+
+ggplot(Description_order, aes(x="", y=Freq, fill = Type)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  labs(title = "Type of Theft Percentage", x = "", y = "") +
+  theme(axis.text.x = element_blank(),
+        panel.background=element_rect(fill="pink",color ="white")) +
+  theme(panel.grid=element_blank())
+```
+
+
+# Location of Crime
+
+```{r, warning=FALSE}
+Location <- data.frame(table(Crime_2008_2017$Location.Description))
+Location_order <- Location[order(-Location$Freq),]
+wordcloud2(Location_order, size = 0.8, shape = "circle",color = "random-light", 
+backgroundColor = "pink")
+
+```
+
+
+# Location on map
+
+```{r, warning=FALSE}
+library("rgeos")
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  tidy = FALSE,
+  fig.width = 7,
+  fig.height = 7,
+  fit.pagh = "images",
+  out.width = "65%"
+)
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+sites <- data.frame(longitude = as.numeric(as.character(Crime_2008_2017$Longitude)), 
+                    latitude = Crime_2008_2017$Latitude)
+sites <- na.omit(sites)
+sites_2 <- data.frame(longitude = c(-91.68657, -87.52453), 
+                      latitude = c(36.61945, 42.02255))
+
+ggplot(data = world) +
+  geom_sf() +
+  geom_point(data = sites, aes(x = longitude, y = latitude), size = 2, 
+             shape = 23, fill = "darkred") +
+  coord_sf(xlim = c(-110, -70), ylim = c(20, 50), expand = FALSE)
+
+ggplot(data = world) +
+  geom_sf() +
+  geom_point(data = sites, aes(x = longitude, y = latitude), size = 2, 
+             shape = 23, fill = "darkred") +
+  coord_sf(xlim = c(-92, -85), ylim = c(36, 43), expand = FALSE)
+
+```
+
+```{r}
+m1 <- lm(data=df3, terrorist_attacks_count ~ PopTotal)
+summary(m1)
+```
+
